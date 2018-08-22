@@ -14,18 +14,18 @@ const uint64Size = 8
 type Serializer struct {
 	writer 		*bytes.Buffer
 	pos			int
-	Extensions 	func (v interface{}) error
+	Extension 	func (v interface{}) error
 }
 
 func NewSerializer() *Serializer {
 	return &Serializer{
 		writer:		new(bytes.Buffer),
 		pos:		0,
-		Extensions: nil,
+		Extension: nil,
 	}
 }
 
-func (s *Serializer) serialize(v interface{}) error {
+func (s *Serializer) Serialize(v interface{}) error {
 	switch t := v.(type) {
 	case byte:
 		return s.byteSerializer(t)
@@ -56,7 +56,7 @@ func (s *Serializer) serialize(v interface{}) error {
 
 func (s *Serializer) byteSerializer(v byte) error {
 	bytes := []byte{v}
-	return s.writeBytes(bytes)
+	return s.WriteBytes(bytes)
 }
 
 func (s *Serializer) bytesSerializer(v []byte) error {
@@ -64,7 +64,7 @@ func (s *Serializer) bytesSerializer(v []byte) error {
 	if err != nil {
 		return err
 	}
-	return s.writeBytes(v)
+	return s.WriteBytes(v)
 }
 
 func (s *Serializer) int8Serializer(v int8) error {
@@ -78,7 +78,7 @@ func (s *Serializer) int16Serializer(v int16) error {
 func (s *Serializer) uint16Serializer(v uint16) error {
 	bytes := make([]byte, uint16Size)
 	binary.BigEndian.PutUint16(bytes, v)
-	return s.writeBytes(bytes)
+	return s.WriteBytes(bytes)
 }
 
 func (s *Serializer) int32Serializer(v int32) error {
@@ -88,7 +88,7 @@ func (s *Serializer) int32Serializer(v int32) error {
 func (s *Serializer) uint32Serializer(v uint32) error {
 	bytes := make([]byte, uint32Size)
 	binary.BigEndian.PutUint32(bytes, v)
-	return s.writeBytes(bytes)
+	return s.WriteBytes(bytes)
 }
 
 func (s *Serializer) int64Serializer(v int64) error {
@@ -98,7 +98,7 @@ func (s *Serializer) int64Serializer(v int64) error {
 func (s *Serializer) uint64Serializer(v uint64) error {
 	bytes := make([]byte, uint64Size)
 	binary.BigEndian.PutUint64(bytes, v)
-	return s.writeBytes(bytes)
+	return s.WriteBytes(bytes)
 }
 
 func (s *Serializer) boolSerializer(v bool) error {
@@ -106,7 +106,7 @@ func (s *Serializer) boolSerializer(v bool) error {
 	if v {
 		bytes[0] = 1
 	}
-	return s.writeBytes(bytes)
+	return s.WriteBytes(bytes)
 }
 
 func (s *Serializer) stringSerializer(v string) error {
@@ -114,7 +114,7 @@ func (s *Serializer) stringSerializer(v string) error {
 	return s.bytesSerializer(bytes)
 }
 
-func (s *Serializer) writeBytes(bytes []byte) error {
+func (s *Serializer) WriteBytes(bytes []byte) error {
 	s.pos += len(bytes)
 	_, err := s.writer.Write(bytes)
 	return err
@@ -123,7 +123,7 @@ func (s *Serializer) writeBytes(bytes []byte) error {
 func (s *Serializer) writeLength(len int) error {
 	buf := make([]byte, uint64Size)
 	n := binary.PutUvarint(buf, uint64(len))
-	return s.writeBytes(buf[:n])
+	return s.WriteBytes(buf[:n])
 }
 
 // this function is used to serialize struct, map, array and extensions
@@ -139,10 +139,10 @@ func (s *Serializer) recursiveSerializer(v interface{}) error {
 	case reflect.Map:
 		return s.mapSerializer(reflectValue)
 	default:
-		if s.Extensions != nil {
-			return s.Extensions(v)
+		if s.Extension != nil {
+			return s.Extension(v)
 		}
-		return fmt.Errorf("wrong type: %s", reflectValue.Type())
+		return fmt.Errorf("wrong type: %s", reflectValue.Type().String())
 	}
 }
 
@@ -151,7 +151,7 @@ func (s *Serializer) structSerializer(v reflect.Value) error {
 	for i:=0; i < numField; i++ {
 		field := v.Field(i)
 		if field.CanInterface() {
-			if err := s.serialize(field.Interface()); err != nil {
+			if err := s.Serialize(field.Interface()); err != nil {
 				return err
 			}
 		}
@@ -162,7 +162,7 @@ func (s *Serializer) structSerializer(v reflect.Value) error {
 func (s *Serializer) arraySerializer(v reflect.Value) error {
 	n := v.Len()
 	for i:= 0; i < n; i++ {
-		if err := s.serialize(v.Index(i).Interface()); err != nil {
+		if err := s.Serialize(v.Index(i).Interface()); err != nil {
 			return err
 		}
 	}
@@ -175,7 +175,7 @@ func (s *Serializer) sliceSerializer(v reflect.Value) error {
 		return err
 	}
 	for i:= 0; i < n; i++ {
-		if err := s.serialize(v.Index(i).Interface()); err != nil {
+		if err := s.Serialize(v.Index(i).Interface()); err != nil {
 			return err
 		}
 	}
@@ -189,10 +189,10 @@ func (s *Serializer) mapSerializer(v reflect.Value) error {
 	}
 	for _, key := range v.MapKeys() {
 		value := v.MapIndex(key)
-		if err := s.serialize(key.Interface()); err != nil {
+		if err := s.Serialize(key.Interface()); err != nil {
 			return err
 		}
-		if err := s.serialize(value.Interface()); err != nil {
+		if err := s.Serialize(value.Interface()); err != nil {
 			return err
 		}
 	}
@@ -205,7 +205,7 @@ func (s *Serializer) Bytes() []byte {
 
 func MarshalBinary(v interface{}) ([]byte, error) {
 	serializer := NewSerializer()
-	err := serializer.serialize(v)
+	err := serializer.Serialize(v)
 	return serializer.Bytes(), err
 }
 

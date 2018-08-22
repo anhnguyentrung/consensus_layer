@@ -9,18 +9,18 @@ import (
 type Deserializer struct {
 	buffer 		[]byte
 	pos 		int
-	Extensions 	func (v interface{}) error
+	Extension 	func (v interface{}) error
 }
 
 func NewDeserializer(buf []byte) *Deserializer {
 	return &Deserializer{
 		buffer:		buf,
 		pos:		0,
-		Extensions:	nil,
+		Extension:	nil,
 	}
 }
 
-func (d *Deserializer) deserialize(v interface{}) error {
+func (d *Deserializer) Deserialize(v interface{}) error {
 	reflectValue := reflect.Indirect(reflect.ValueOf(v))
 	if !reflectValue.CanAddr() {
 		return fmt.Errorf("not pointer type")
@@ -53,6 +53,15 @@ func (d *Deserializer) deserialize(v interface{}) error {
 	default:
 		return d.recursiveDeserializer(v, reflectValue)
 	}
+}
+
+func (d *Deserializer) ReadBytes(l int) ([]byte, error)  {
+	if err := d.checkBufferLength(l); err != nil {
+		return nil, err
+	}
+	bytes := d.buffer[d.pos : d.pos + l]
+	d.pos += l
+	return bytes, nil
 }
 
 func (d *Deserializer) byteDeserializer(v reflect.Value) error {
@@ -190,10 +199,10 @@ func (d *Deserializer) recursiveDeserializer(v interface{}, rv reflect.Value) er
 	case reflect.Map:
 		return d.mapDeserializer(rv)
 	default:
-		if d.Extensions != nil {
-			return d.Extensions(v)
+		if d.Extension != nil {
+			return d.Extension(v)
 		}
-		return fmt.Errorf("wrong type: %s", rv.Type())
+		return fmt.Errorf("wrong type: %s", rv.Type().String())
 	}
 }
 

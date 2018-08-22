@@ -27,7 +27,6 @@ func (d *Deserializer) deserialize(v interface{}) error {
 	}
 	if reflectValue.Type().Kind() == reflect.Ptr {
 		elem := reflectValue.Type().Elem()
-		//reflectValue.Set(reflect.New(elem))
 		reflectValue = reflect.Indirect(reflect.New(elem))
 	}
 	switch v.(type) {
@@ -38,13 +37,13 @@ func (d *Deserializer) deserialize(v interface{}) error {
 	case *uint16:
 		return d.uint16Deserializer(reflectValue)
 	case *int32:
-		return d.int16Deserializer(reflectValue)
+		return d.int32Deserializer(reflectValue)
 	case *uint32:
-		return d.uint16Deserializer(reflectValue)
+		return d.uint32Deserializer(reflectValue)
 	case *int64:
-		return d.int16Deserializer(reflectValue)
+		return d.int64Deserializer(reflectValue)
 	case *uint64:
-		return d.uint16Deserializer(reflectValue)
+		return d.uint64Deserializer(reflectValue)
 	case *bool:
 		return d.boolDeserializer(reflectValue)
 	case *[]byte:
@@ -72,7 +71,7 @@ func (d *Deserializer) int16Deserializer(v reflect.Value) error {
 	}
 	value := int16(binary.BigEndian.Uint16(d.buffer[d.pos:]))
 	d.pos += uint16Size
-	v.SetUint(uint64(value))
+	v.SetInt(int64(value))
 	return nil
 }
 
@@ -92,7 +91,7 @@ func (d *Deserializer) int32Deserializer(v reflect.Value) error {
 	}
 	value := int32(binary.BigEndian.Uint32(d.buffer[d.pos:]))
 	d.pos += uint32Size
-	v.SetUint(uint64(value))
+	v.SetInt(int64(value))
 	return nil
 }
 
@@ -112,7 +111,7 @@ func (d *Deserializer) int64Deserializer(v reflect.Value) error {
 	}
 	value := int64(binary.BigEndian.Uint64(d.buffer[d.pos:]))
 	d.pos += uint64Size
-	v.SetUint(uint64(value))
+	v.SetInt(value)
 	return nil
 }
 
@@ -253,4 +252,9 @@ func (d *Deserializer) mapDeserializer(rv reflect.Value) error {
 		rv.SetMapIndex(key, value)
 	}
 	return nil
+}
+
+func UnmarshalBinary(buf []byte, v interface{}) error {
+	deserializer := NewDeserializer(buf)
+	return deserializer.deserialize(v)
 }

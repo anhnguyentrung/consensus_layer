@@ -1,10 +1,10 @@
 package serializer
 
 import (
-	"io"
 	"encoding/binary"
 	"reflect"
 	"fmt"
+	"bytes"
 )
 
 const uint16Size = 2
@@ -12,14 +12,14 @@ const uint32Size = 4
 const uint64Size = 8
 
 type Serializer struct {
-	writer 		io.Writer
+	writer 		*bytes.Buffer
 	pos			int
 	Extensions 	func (v interface{}) error
 }
 
-func NewSerializer(writer io.Writer) *Serializer {
+func NewSerializer() *Serializer {
 	return &Serializer{
-		writer:		writer,
+		writer:		new(bytes.Buffer),
 		pos:		0,
 		Extensions: nil,
 	}
@@ -82,7 +82,7 @@ func (s *Serializer) uint16Serializer(v uint16) error {
 }
 
 func (s *Serializer) int32Serializer(v int32) error {
-	return s.uint16Serializer(uint16(v))
+	return s.uint32Serializer(uint32(v))
 }
 
 func (s *Serializer) uint32Serializer(v uint32) error {
@@ -150,9 +150,10 @@ func (s *Serializer) structSerializer(v reflect.Value) error {
 	numField := v.NumField()
 	for i:=0; i < numField; i++ {
 		field := v.Field(i)
-		err := s.serialize(field.Interface())
-		if err != nil {
-			return err
+		if field.CanInterface() {
+			if err := s.serialize(field.Interface()); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -196,6 +197,16 @@ func (s *Serializer) mapSerializer(v reflect.Value) error {
 		}
 	}
 	return nil
+}
+
+func (s *Serializer) Bytes() []byte {
+	return s.writer.Bytes()
+}
+
+func MarshalBinary(v interface{}) ([]byte, error) {
+	serializer := NewSerializer()
+	err := serializer.serialize(v)
+	return serializer.Bytes(), err
 }
 
 

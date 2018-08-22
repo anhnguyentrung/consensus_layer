@@ -7,9 +7,9 @@ import (
 	"bytes"
 )
 
-const uint16Size = 2
-const uint32Size = 4
-const uint64Size = 8
+const Uint16Size = 2
+const Uint32Size = 4
+const Uint64Size = 8
 
 type Serializer struct {
 	writer 		*bytes.Buffer
@@ -76,7 +76,7 @@ func (s *Serializer) int16Serializer(v int16) error {
 }
 
 func (s *Serializer) uint16Serializer(v uint16) error {
-	bytes := make([]byte, uint16Size)
+	bytes := make([]byte, Uint16Size)
 	binary.BigEndian.PutUint16(bytes, v)
 	return s.WriteBytes(bytes)
 }
@@ -86,7 +86,7 @@ func (s *Serializer) int32Serializer(v int32) error {
 }
 
 func (s *Serializer) uint32Serializer(v uint32) error {
-	bytes := make([]byte, uint32Size)
+	bytes := make([]byte, Uint32Size)
 	binary.BigEndian.PutUint32(bytes, v)
 	return s.WriteBytes(bytes)
 }
@@ -96,7 +96,7 @@ func (s *Serializer) int64Serializer(v int64) error {
 }
 
 func (s *Serializer) uint64Serializer(v uint64) error {
-	bytes := make([]byte, uint64Size)
+	bytes := make([]byte, Uint64Size)
 	binary.BigEndian.PutUint64(bytes, v)
 	return s.WriteBytes(bytes)
 }
@@ -121,7 +121,7 @@ func (s *Serializer) WriteBytes(bytes []byte) error {
 }
 
 func (s *Serializer) writeLength(len int) error {
-	buf := make([]byte, uint64Size)
+	buf := make([]byte, Uint64Size)
 	n := binary.PutUvarint(buf, uint64(len))
 	return s.WriteBytes(buf[:n])
 }

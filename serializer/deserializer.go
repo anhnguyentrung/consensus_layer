@@ -75,61 +75,61 @@ func (d *Deserializer) byteDeserializer(v reflect.Value) error {
 }
 
 func (d *Deserializer) int16Deserializer(v reflect.Value) error {
-	if err := d.checkBufferLength(uint16Size); err != nil {
+	if err := d.checkBufferLength(Uint16Size); err != nil {
 		return err
 	}
 	value := int16(binary.BigEndian.Uint16(d.buffer[d.pos:]))
-	d.pos += uint16Size
+	d.pos += Uint16Size
 	v.SetInt(int64(value))
 	return nil
 }
 
 func (d *Deserializer) uint16Deserializer(v reflect.Value) error {
-	if err := d.checkBufferLength(uint16Size); err != nil {
+	if err := d.checkBufferLength(Uint16Size); err != nil {
 		return err
 	}
 	value := binary.BigEndian.Uint16(d.buffer[d.pos:])
-	d.pos += uint16Size
+	d.pos += Uint16Size
 	v.SetUint(uint64(value))
 	return nil
 }
 
 func (d *Deserializer) int32Deserializer(v reflect.Value) error {
-	if err := d.checkBufferLength(uint32Size); err != nil {
+	if err := d.checkBufferLength(Uint32Size); err != nil {
 		return err
 	}
 	value := int32(binary.BigEndian.Uint32(d.buffer[d.pos:]))
-	d.pos += uint32Size
+	d.pos += Uint32Size
 	v.SetInt(int64(value))
 	return nil
 }
 
 func (d *Deserializer) uint32Deserializer(v reflect.Value) error {
-	if err := d.checkBufferLength(uint32Size); err != nil {
+	if err := d.checkBufferLength(Uint32Size); err != nil {
 		return err
 	}
 	value := binary.BigEndian.Uint32(d.buffer[d.pos:])
-	d.pos += uint32Size
+	d.pos += Uint32Size
 	v.SetUint(uint64(value))
 	return nil
 }
 
 func (d *Deserializer) int64Deserializer(v reflect.Value) error {
-	if err := d.checkBufferLength(uint64Size); err != nil {
+	if err := d.checkBufferLength(Uint64Size); err != nil {
 		return err
 	}
 	value := int64(binary.BigEndian.Uint64(d.buffer[d.pos:]))
-	d.pos += uint64Size
+	d.pos += Uint64Size
 	v.SetInt(value)
 	return nil
 }
 
 func (d *Deserializer) uint64Deserializer(v reflect.Value) error {
-	if err := d.checkBufferLength(uint64Size); err != nil {
+	if err := d.checkBufferLength(Uint64Size); err != nil {
 		return err
 	}
 	value := binary.BigEndian.Uint64(d.buffer[d.pos:])
-	d.pos += uint64Size
+	d.pos += Uint64Size
 	v.SetUint(uint64(value))
 	return nil
 }
@@ -209,7 +209,7 @@ func (d *Deserializer) recursiveDeserializer(v interface{}, rv reflect.Value) er
 func (d *Deserializer) arrayDeserializer(rv reflect.Value) error {
 	l := rv.Len()
 	for i:= 0; i < l; i++ {
-		if err := d.deserialize(rv.Index(i).Addr().Interface()); err != nil {
+		if err := d.Deserialize(rv.Index(i).Addr().Interface()); err != nil {
 			return err
 		}
 	}
@@ -223,7 +223,7 @@ func (d *Deserializer) sliceDeserializer(rv reflect.Value) error {
 	}
 	rv.Set(reflect.MakeSlice(rv.Type(), int(l), int(l)))
 	for i:= 0; i < int(l); i++ {
-		if err := d.deserialize(rv.Index(i).Addr().Interface()); err != nil {
+		if err := d.Deserialize(rv.Index(i).Addr().Interface()); err != nil {
 			return err
 		}
 	}
@@ -235,7 +235,7 @@ func (d *Deserializer) structDeserializer(rv reflect.Value) error {
 	for i:= 0; i < numField; i++ {
 		field := rv.Field(i)
 		if field.CanSet() {
-			if err := d.deserialize(field.Addr().Interface()); err != nil {
+			if err := d.Deserialize(field.Addr().Interface()); err != nil {
 				return err
 			}
 		}
@@ -251,11 +251,11 @@ func (d *Deserializer) mapDeserializer(rv reflect.Value) error {
 	rv.Set(reflect.MakeMap(rv.Type()))
 	for i := 0; i < int(l); i++ {
 		key := reflect.Indirect(reflect.New(rv.Type().Key()))
-		if err = d.deserialize(key.Addr().Interface()); err != nil {
+		if err = d.Deserialize(key.Addr().Interface()); err != nil {
 			return err
 		}
 		value := reflect.Indirect(reflect.New(rv.Type().Elem()))
-		if err = d.deserialize(value.Addr().Interface()); err != nil {
+		if err = d.Deserialize(value.Addr().Interface()); err != nil {
 			return err
 		}
 		rv.SetMapIndex(key, value)
@@ -265,5 +265,5 @@ func (d *Deserializer) mapDeserializer(rv reflect.Value) error {
 
 func UnmarshalBinary(buf []byte, v interface{}) error {
 	deserializer := NewDeserializer(buf)
-	return deserializer.deserialize(v)
+	return deserializer.Deserialize(v)
 }

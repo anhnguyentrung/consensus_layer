@@ -11,7 +11,6 @@ import (
 	"crypto/cipher"
 	"crypto/sha512"
 	"strings"
-	"blockchain/crypto"
 )
 
 type PlainKeys struct {
@@ -77,9 +76,10 @@ func (wallet *Wallet) PublicKeys() []*PublicKey {
 }
 
 func (wallet *Wallet) NewKeyPair() string {
-	privateKey,_ := crypto.NewRandomPrivateKey()
+	privateKey,_ := NewRandomPrivateKey()
 	publicKey := privateKey.PublicKey().String()
 	wallet.keyPairs[publicKey] = privateKey.String()
+	wallet.SaveToFile()
 	return publicKey
 }
 
@@ -93,6 +93,7 @@ func (wallet *Wallet) ImportPrivateKey(wif string) error {
 		return fmt.Errorf("duplicated key")
 	}
 	wallet.keyPairs[publicKey] = privateKey.String()
+	wallet.SaveToFile()
 	return nil
 }
 

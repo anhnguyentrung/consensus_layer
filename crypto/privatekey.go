@@ -23,7 +23,8 @@ func NewRandomPrivateKey() (*PrivateKey, error) {
 	if n != 32 {
 		return nil, fmt.Errorf("wrong length")
 	}
-	privateKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), sha256.Sum256(randomBytes)[:])
+	hash := sha256.Sum256(randomBytes)
+	privateKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), hash[:])
 	return &PrivateKey{privateKey}, nil
 }
 

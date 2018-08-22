@@ -33,11 +33,12 @@ type HandshakeInfo struct {
 	ChainId                 SHA256Type
 	NodeId                  SHA256Type
 	Key                     crypto.PublicKey
-	P2PAddress              string
+	originAddress           string
 	LastCommitBlockHeight   uint32
 	LastCommitBlockId  		SHA256Type
 	TopBlockHeight          uint32
 	TopBlockId              SHA256Type
+	Timestamp 				int64
 }
 
 type HandshakePacket struct {

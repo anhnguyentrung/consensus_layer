@@ -41,15 +41,15 @@ func (privateKey *PrivateKey) PublicKey() *PublicKey {
 	return &PublicKey{Data: pubData}
 }
 
-func (privateKey *PrivateKey) Sign(hash []byte) (*Signature, error) {
+func (privateKey *PrivateKey) Sign(hash []byte) (Signature, error) {
 	if len(hash) != 32 {
-		return nil, fmt.Errorf("wrong length")
+		return Signature{}, fmt.Errorf("wrong length")
 	}
 	sigData, err :=  btcec.SignCompact(btcec.S256(), privateKey.PrivateKey, hash, true)
 	if err != nil {
-		return nil, err
+		return Signature{}, err
 	}
-	return &Signature{Data: sigData}, nil
+	return Signature{Data: sigData}, nil
 }
 
 func (privateKey *PrivateKey) String() string {

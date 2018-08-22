@@ -6,6 +6,8 @@ import (
 	"net"
 	"fmt"
 	"bufio"
+	"time"
+	"crypto/sha256"
 )
 
 type receiveMessage struct {
@@ -68,8 +70,8 @@ func (node *Node) listenInbounds() error {
 			fmt.Println("accepted new client from address ", connection.conn.RemoteAddr().String())
 			node.addConnection(connection)
 			go node.handleConnection(connection)
-		case packet := <-node.newMessage:
-			go node.handleMessage(packet.connection, packet)
+		case receiveMessage := <-node.newMessage:
+			go node.handleMessage(receiveMessage)
 		case doneConnection := <-node.doneConn:
 			fmt.Println("disconnected client from address ", doneConnection.conn.RemoteAddr().String())
 			node.removeConnection(doneConnection)
@@ -134,4 +136,37 @@ func (node *Node) handleMessage(receiveMessage *receiveMessage) {
 }
 
 func (node *Node) handleHandshake(c *Connection, handshake HandshakePacket) {
+}
+
+func (node *Node) newHandshakePacket() HandshakePacket {
+	publicKey := &crypto.PublicKey{}
+	if len(node.keyPairs) > 0 {
+		for k := range node.keyPairs {
+			publicKey, _ = crypto.NewPublicKey(k)
+			break
+		}
+	}
+	info := HandshakeInfo{
+		Network:				TestNet,
+		Version:				1,
+		ChainId: 				node.chainId,
+		NodeId: 				node.id,
+		Key: 					*publicKey,
+		originAddress: 			node.address,
+		LastCommitBlockHeight: 	0,
+		LastCommitBlockId: 		SHA256Type{},
+		TopBlockHeight: 		0,
+		TopBlockId:				SHA256Type{},
+		Timestamp:				time.Now().UnixNano(),
+	}
+	buf, _ := marshalBinary(info)
+	hash := sha256.Sum256(buf)
+	sign := crypto.Signature{}
+	if privateKey, ok := node.keyPairs[publicKey.String()]; ok {
+		sign, _ = privateKey.Sign(hash[:])
+	}
+	return HandshakePacket{
+		Info: info,
+		Sign: sign,
+	}
 }

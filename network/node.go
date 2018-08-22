@@ -5,11 +5,7 @@ import (
 	"consensus_layer/crypto"
 	"net"
 	"fmt"
-	"blockchain/chain"
 	"bufio"
-	"io"
-	"log"
-	"encoding/binary"
 )
 
 type receiveMessage struct {
@@ -135,4 +131,7 @@ func (node *Node) handleMessage(receiveMessage *receiveMessage) {
 	case Request:
 	case Block:
 	}
+}
+
+func (node *Node) handleHandshake(c *Connection, handshake HandshakePacket) {
 }

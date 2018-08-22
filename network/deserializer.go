@@ -7,7 +7,12 @@ import (
 	"bufio"
 	"io"
 	"encoding/binary"
+	"consensus_layer/crypto"
 )
+
+const SHA256TypeSize = 32
+const PublicKeySize  = 33
+const SignatureSize  = 65
 
 func unmarshalBinary(buf []byte, v interface{}) error {
 	d := serializer.NewDeserializer(buf)
@@ -20,6 +25,31 @@ func unmarshalBinary(buf []byte, v interface{}) error {
 				return err
 			}
 			rv.SetUint(uint64(bytes[0]))
+			return nil
+		case *SHA256Type:
+			bytes, err := d.ReadBytes(SHA256TypeSize)
+			if err != nil {
+				return err
+			}
+			sha256 := SHA256Type{}
+			copy(sha256[:], bytes)
+			rv.Set(reflect.ValueOf(sha256))
+			return nil
+		case *crypto.PublicKey:
+			bytes, err := d.ReadBytes(PublicKeySize)
+			if err != nil {
+				return err
+			}
+			publicKey := crypto.PublicKey{ Data: bytes}
+			rv.Set(reflect.ValueOf(publicKey))
+			return nil
+		case *crypto.Signature:
+			bytes, err := d.ReadBytes(SignatureSize)
+			if err != nil {
+				return err
+			}
+			signature := crypto.Signature{ Data: bytes}
+			rv.Set(reflect.ValueOf(signature))
 			return nil
 		default:
 			rv := reflect.Indirect(reflect.ValueOf(v))
@@ -43,7 +73,6 @@ func unmarshalBinaryMessage(reader *bufio.Reader, message *Message) error {
 		return err
 	}
 	length := binary.BigEndian.Uint32(lenBuf)
-	//fmt.Println("size of recevied message: ", length)
 	messageData := make([]byte, length, length)
 	n, err := io.ReadFull(reader, messageData)
 	if uint32(n) != length {

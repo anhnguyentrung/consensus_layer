@@ -5,6 +5,7 @@ import (
 	"consensus_layer/serializer"
 	"fmt"
 	"consensus_layer/crypto"
+	"consensus_layer/blockchain"
 )
 
 func marshalBinary(v interface{}) ([]byte, error) {
@@ -13,7 +14,7 @@ func marshalBinary(v interface{}) ([]byte, error) {
 		switch t := v.(type) {
 		case MessageType:
 			return s.WriteBytes([]byte{byte(t)})
-		case SHA256Type:
+		case blockchain.SHA256Type:
 			return s.WriteBytes(t[:])
 		case crypto.Signature:
 			if len(t.Data) != 65 {

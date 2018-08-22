@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"time"
 	"crypto/sha256"
+	"consensus_layer/blockchain"
 )
 
 type receiveMessage struct {
@@ -87,7 +88,8 @@ func (node *Node) addConnection(c *Connection) {
 		node.conns[c.conn.RemoteAddr().String()] = c
 	} else {
 		node.conns[c.peerAddress] = c
-		node.sendHandshake(c)
+		handshake := node.newHandshakePacket()
+		c.sendPacket(handshake)
 	}
 	c.isOpen = true
 }
@@ -154,10 +156,10 @@ func (node *Node) newHandshakePacket() HandshakePacket {
 		Key: 					*publicKey,
 		originAddress: 			node.address,
 		LastCommitBlockHeight: 	0,
-		LastCommitBlockId: 		SHA256Type{},
+		LastCommitBlockId: 		blockchain.SHA256Type{},
 		TopBlockHeight: 		0,
-		TopBlockId:				SHA256Type{},
-		Timestamp:				time.Now().UnixNano(),
+		TopBlockId:				blockchain.SHA256Type{},
+		Timestamp:				time.Now(),
 	}
 	buf, _ := marshalBinary(info)
 	hash := sha256.Sum256(buf)

@@ -1,6 +1,10 @@
 package network
 
-import "consensus_layer/crypto"
+import (
+	"consensus_layer/crypto"
+	"consensus_layer/blockchain"
+	"time"
+)
 
 type MessageType byte
 const (
@@ -16,8 +20,6 @@ const (
 	MainNet
 )
 
-type SHA256Type [32]byte
-
 type MessageHeader struct {
 	Type 	MessageType // 1 byte
 	Length  uint32  	// 4 bytes
@@ -30,15 +32,15 @@ type Message struct {
 type HandshakeInfo struct {
 	Network					NetworkType
 	Version					uint16
-	ChainId                 SHA256Type
-	NodeId                  SHA256Type
+	ChainId                 blockchain.SHA256Type
+	NodeId                  blockchain.SHA256Type
 	Key                     crypto.PublicKey
 	originAddress           string
 	LastCommitBlockHeight   uint32
-	LastCommitBlockId  		SHA256Type
+	LastCommitBlockId  		blockchain.SHA256Type
 	TopBlockHeight          uint32
-	TopBlockId              SHA256Type
-	Timestamp 				int64
+	TopBlockId              blockchain.SHA256Type
+	Timestamp 				time.Time
 }
 
 type HandshakePacket struct {

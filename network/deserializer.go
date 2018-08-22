@@ -8,6 +8,7 @@ import (
 	"io"
 	"encoding/binary"
 	"consensus_layer/crypto"
+	"consensus_layer/blockchain"
 )
 
 const SHA256TypeSize = 32
@@ -26,12 +27,12 @@ func unmarshalBinary(buf []byte, v interface{}) error {
 			}
 			rv.SetUint(uint64(bytes[0]))
 			return nil
-		case *SHA256Type:
+		case *blockchain.SHA256Type:
 			bytes, err := d.ReadBytes(SHA256TypeSize)
 			if err != nil {
 				return err
 			}
-			sha256 := SHA256Type{}
+			sha256 := blockchain.SHA256Type{}
 			copy(sha256[:], bytes)
 			rv.Set(reflect.ValueOf(sha256))
 			return nil

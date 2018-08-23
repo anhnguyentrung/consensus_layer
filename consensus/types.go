@@ -5,9 +5,17 @@ import (
 	"consensus_layer/blockchain"
 )
 
+type Role uint8
+
+const (
+	Follower Role = iota
+	Candidate
+	Leader
+)
+
 type RequestNewTerm struct {
 	Term uint64
-	NodeId blockchain.SHA256Type
+	Sender string
 	Signature crypto.Signature
 }
 
@@ -18,6 +26,6 @@ type RequestVote struct {
 
 type RequestVoteResponse struct {
 	Term uint64
-	NodeId blockchain.SHA256Type
+	Sender string
 	GrantVote bool
 }

@@ -21,8 +21,8 @@ type receiveBlock struct {
 }
 
 type Node struct {
-	id 					SHA256Type
-	chainId 			SHA256Type
+	id 					blockchain.SHA256Type
+	chainId 			blockchain.SHA256Type
 	address 			string
 	outbounds			[]string // addresses of outbound peers that this node try to connect
 	keyPairs 			map[string]*crypto.PrivateKey
@@ -88,10 +88,15 @@ func (node *Node) addConnection(c *Connection) {
 		node.conns[c.conn.RemoteAddr().String()] = c
 	} else {
 		node.conns[c.peerAddress] = c
+	}
+	c.isOpen = true
+}
+
+func (node *Node) sendHandshake(c *Connection) {
+	if c.peerAddress != "" {
 		handshake := node.newHandshakePacket()
 		c.sendPacket(handshake)
 	}
-	c.isOpen = true
 }
 
 func (node *Node) removeConnection(c *Connection) {

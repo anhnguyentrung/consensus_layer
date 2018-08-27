@@ -56,7 +56,7 @@ func (em *ElectionManager) receivedNewTerm(conn *network.Connection, newTerm Req
 		}
 		if em.voteCounter[network.RequestNewTerm][newTerm.Term] > uint32(len(em.producers)) * 2/3 {
 			em.becomeCandidate(newTerm.Term)
-			//em.sendVoteRequest(conn)
+			em.sendVoteRequest(conn)
 		}
 	}
 }
@@ -64,6 +64,20 @@ func (em *ElectionManager) receivedNewTerm(conn *network.Connection, newTerm Req
 func (em *ElectionManager) becomeCandidate(term uint64) {
 	em.role = Candidate
 	em.term = term
+}
+
+// send vote request
+func (em *ElectionManager) sendVoteRequest(conn *network.Connection) {
+	requestVote := RequestVote{
+		Term: em.term,
+		Candidate: em.address,
+		Signature: crypto.Signature{},
+	}
+	buf, _ := network.MarshalBinary(requestVote)
+	hash := sha256.Sum256(buf)
+	sig := em.signer(hash)
+	requestVote.Signature = sig
+	conn.Send(requestVote)
 }
 
 func (em *ElectionManager) Send(conn *network.Connection, messageType network.MessageType) {

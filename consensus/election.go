@@ -3,16 +3,23 @@ package consensus
 import "consensus_layer/network"
 
 type ElectionManager struct {
-	node *network.Node
 	Role Role
 	Term uint64
+	NewTerm chan *RequestNewTerm
+	VoteResponse chan *RequestVoteResponse
 }
 
-func NewElectionManager(node *network.Node) *ElectionManager {
+func NewElectionManager() *ElectionManager {
 	em := &ElectionManager{
-		node: node,
 		Role: Follower,
 		Term: 1,
 	}
 	return em
+}
+
+// election manager inherit base manager interface
+var _ network.BaseManager = (*ElectionManager)(nil)
+
+func (em *ElectionManager) Receive(conn *network.Connection, message network.Message) {
+
 }

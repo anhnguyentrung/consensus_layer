@@ -6,12 +6,17 @@ import (
 	"time"
 )
 
+const TCP  = "tcp"
+const ElectionManager  = "ElectionManager"
 type MessageType byte
 const (
 	Handshake MessageType = iota
 	Notice
 	Request
 	Block
+	RequestNewTerm
+	RequestVote
+	RequestVoteResponse
 )
 
 type NetworkType byte

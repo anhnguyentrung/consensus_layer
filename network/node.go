@@ -9,6 +9,8 @@ import (
 	"time"
 	"crypto/sha256"
 	"consensus_layer/blockchain"
+	"strings"
+	"consensus_layer/consensus"
 )
 
 type receiveMessage struct {
@@ -24,7 +26,7 @@ type Node struct {
 	id 					blockchain.SHA256Type
 	chainId 			blockchain.SHA256Type
 	address 			string
-	outbounds			[]string // addresses of outbound peers that this node try to connect
+	targets				[]string // addresses of specific peers that this node try to connect
 	keyPairs 			map[string]*crypto.PrivateKey
 	conns 				map[string]*Connection
 	network 			NetworkType
@@ -33,24 +35,60 @@ type Node struct {
 	doneConn 			chan *Connection // trigger when a connection is disconnected
 	newMessage 			chan *receiveMessage // trigger when received a message
 	receiveBlockQueue 	[]receiveBlock
+	managers			map[string]BaseManager
 	mutex 				sync.Mutex
 }
 
 func NewNode(address string, outbounds []string) *Node {
-	return &Node {
+	node := &Node {
 		address: address,
-		outbounds: outbounds,
+		targets: outbounds,
 		keyPairs: make(map[string]*crypto.PrivateKey,0),
 		conns: make(map[string]*Connection,0),
 		newConn: make(chan *Connection),
 		doneConn: make(chan *Connection),
 		newMessage: make(chan *receiveMessage),
 	}
+	electionManager := consensus.NewElectionManager()
+	node.addManager(electionManager, ElectionManager)
+	return node
+}
+
+func (node *Node) addManager(manager BaseManager, id string) {
+	node.mutex.Lock()
+	defer node.mutex.Unlock()
+	node.managers[id] = manager
+}
+
+// connect to specific remote peers
+func (node *Node) connectsToTargets() {
+	fmt.Println("connecting to peer ...")
+	for _, addr := range node.targets {
+		c := NewConnection(addr)
+		err := node.dial(c)
+		if err != nil {
+			fmt.Println("connecting to peer: ", err)
+		}
+	}
+}
+
+func (node *Node) dial(c *Connection) error {
+	if !strings.Contains(c.peerAddress, ":") {
+		return fmt.Errorf("invalid peer address %s", c.peerAddress)
+	}
+	conn, err := net.Dial(TCP, c.peerAddress)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	c.conn = conn
+	node.newConn <- c
+	return nil
 }
 
 // listen from remote peers
-func (node *Node) listenInbounds() error {
-	listener, err := net.Listen("tcp", node.address)
+func (node *Node) listen() error {
+	listener, err := net.Listen(TCP, node.address)
 	if err != nil {
 		return err
 	}
@@ -139,6 +177,8 @@ func (node *Node) handleMessage(receiveMessage *receiveMessage) {
 	case Notice:
 	case Request:
 	case Block:
+	case RequestNewTerm, RequestVote, RequestVoteResponse:
+		node.managers[ElectionManager].Receive(c, receiveMessage.message)
 	}
 }
 

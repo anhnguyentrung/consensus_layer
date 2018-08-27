@@ -16,35 +16,40 @@ import (
 //	conn *network.Connection
 //}
 
+type keyPair struct {
+	publicKey *crypto.PublicKey
+	privateKey *crypto.PrivateKey
+}
+
 type Node struct {
 	id 					blockchain.SHA256Type
 	chainId 			blockchain.SHA256Type
-	address 			string
+	p2pAddress 			string
 	targets				[]string // addresses of specific peers that this node try to connect
-	keyPairs 			map[string]*crypto.PrivateKey
+	keyPair				keyPair
 	conns 				map[string]*network.Connection
 	network 			network.NetworkType
 	version 			uint16
 	newConn 			chan *network.Connection // trigger when a connection is accepted
 	doneConn 			chan *network.Connection // trigger when a connection is disconnected
-	//newMessage 			chan *network.ReceiveMessage // trigger when received a message
 	//receiveBlockQueue 	[]receiveBlock
 	managers			map[string]network.BaseManager
+	walletAddress		string
 	mutex 				sync.Mutex
 }
 
-func NewNode(address string, outbounds []string) *Node {
+func NewNode(p2pAddress string, outbounds []string) *Node {
 	node := &Node {
-		address: address,
+		p2pAddress: p2pAddress,
 		targets: outbounds,
-		keyPairs: make(map[string]*crypto.PrivateKey, 0),
+		//keyPairs: make(map[string]*crypto.PrivateKey, 0),
 		conns: make(map[string]*network.Connection, 0),
 		newConn: make(chan *network.Connection),
 		doneConn: make(chan *network.Connection),
 		managers: make(map[string]network.BaseManager, 0),
 		//newMessage: make(chan *network.ReceiveMessage),
 	}
-	electionManager := consensus.NewElectionManager()
+	electionManager := consensus.NewElectionManager(node.Signer, node.walletAddress)
 	node.addManager(electionManager, network.ElectionManager)
 	return node
 }
@@ -74,7 +79,7 @@ func (node *Node) connectsToTargets() {
 
 // listen from remote peers
 func (node *Node) listen() error {
-	listener, err := net.Listen(network.TCP, node.address)
+	listener, err := net.Listen(network.TCP, node.p2pAddress)
 	if err != nil {
 		return err
 	}
@@ -94,8 +99,6 @@ func (node *Node) listen() error {
 			fmt.Println("accepted new client from address ", connection.RemoteAddress())
 			node.addConnection(connection)
 			connection.Start()
-		//case receiveMessage := <-node.newMessage:
-		//	go node.handleMessage(receiveMessage)
 		case doneConnection := <-node.doneConn:
 			fmt.Println("disconnected client from address ", doneConnection.RemoteAddress())
 			node.removeConnection(doneConnection)
@@ -145,24 +148,25 @@ func (node *Node) OnFinish(c *network.Connection) {
 	node.doneConn <- c
 }
 
+func (node *Node) Signer(hash blockchain.SHA256Type) crypto.Signature {
+	privateKey := node.keyPair.privateKey
+	sign, _ := privateKey.Sign(hash[:])
+	return sign
+}
+
 func (node *Node) handleHandshake(c *network.Connection, handshake network.HandshakePacket) {
 }
 
 func (node *Node) newHandshakePacket() network.HandshakePacket {
-	publicKey := &crypto.PublicKey{}
-	if len(node.keyPairs) > 0 {
-		for k := range node.keyPairs {
-			publicKey, _ = crypto.NewPublicKey(k)
-			break
-		}
-	}
+	publicKey := node.keyPair.publicKey
+	privateKey := node.keyPair.privateKey
 	info := network.HandshakeInfo{
 		Network:				network.TestNet,
 		Version:				1,
 		ChainId: 				node.chainId,
 		NodeId: 				node.id,
 		Key: 					*publicKey,
-		OriginAddress: 			node.address,
+		OriginAddress: 			node.p2pAddress,
 		LastCommitBlockHeight: 	0,
 		LastCommitBlockId: 		blockchain.SHA256Type{},
 		TopBlockHeight: 		0,
@@ -171,10 +175,7 @@ func (node *Node) newHandshakePacket() network.HandshakePacket {
 	}
 	buf, _ := network.MarshalBinary(info)
 	hash := sha256.Sum256(buf)
-	sign := crypto.Signature{}
-	if privateKey, ok := node.keyPairs[publicKey.String()]; ok {
-		sign, _ = privateKey.Sign(hash[:])
-	}
+	sign, _ := privateKey.Sign(hash[:])
 	return network.HandshakePacket{
 		Info: info,
 		Sign: sign,

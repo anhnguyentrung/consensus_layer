@@ -29,3 +29,8 @@ type RequestVoteResponse struct {
 	Sender string
 	GrantVote bool
 }
+
+type Producer struct {
+	Address string
+	PublicKey *crypto.PublicKey
+}

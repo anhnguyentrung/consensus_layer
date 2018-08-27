@@ -60,3 +60,4 @@ type ReceiveMessage struct {
 
 type ReceiveFunc func (ReceiveMessage)
 type FinishFunc func(*Connection)
+type SignFunc = func(hash blockchain.SHA256Type) crypto.Signature

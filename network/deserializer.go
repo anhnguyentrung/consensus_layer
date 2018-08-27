@@ -15,7 +15,7 @@ const SHA256TypeSize = 32
 const PublicKeySize  = 33
 const SignatureSize  = 65
 
-func unmarshalBinary(buf []byte, v interface{}) error {
+func UnmarshalBinary(buf []byte, v interface{}) error {
 	d := serializer.NewDeserializer(buf)
 	extension := func(v interface{}) error {
 		rv := reflect.Indirect(reflect.ValueOf(v))
@@ -61,7 +61,7 @@ func unmarshalBinary(buf []byte, v interface{}) error {
 	return d.Deserialize(v)
 }
 
-func unmarshalBinaryMessage(reader *bufio.Reader, message *Message) error {
+func UnmarshalBinaryMessage(reader *bufio.Reader, message *Message) error {
 	typeBuf := make([]byte, 1, 1)
 	_, err := io.ReadFull(reader, typeBuf)
 	if err != nil {

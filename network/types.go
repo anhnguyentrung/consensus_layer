@@ -40,7 +40,7 @@ type HandshakeInfo struct {
 	ChainId                 blockchain.SHA256Type
 	NodeId                  blockchain.SHA256Type
 	Key                     crypto.PublicKey
-	originAddress           string
+	OriginAddress           string
 	LastCommitBlockHeight   uint32
 	LastCommitBlockId  		blockchain.SHA256Type
 	TopBlockHeight          uint32
@@ -52,3 +52,11 @@ type HandshakePacket struct {
 	Info HandshakeInfo
 	Sign crypto.Signature
 }
+
+type ReceiveMessage struct {
+	Conn 	*Connection
+	Message Message
+}
+
+type ReceiveFunc func (ReceiveMessage)
+type FinishFunc func(*Connection)

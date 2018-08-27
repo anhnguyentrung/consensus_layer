@@ -8,7 +8,7 @@ import (
 	"consensus_layer/blockchain"
 )
 
-func marshalBinary(v interface{}) ([]byte, error) {
+func MarshalBinary(v interface{}) ([]byte, error) {
 	s := serializer.NewSerializer()
 	extension := func(v interface{}) error {
 		switch t := v.(type) {

@@ -1,6 +1,9 @@
 package consensus
 
-import "consensus_layer/network"
+import (
+	"consensus_layer/network"
+	"fmt"
+)
 
 type ElectionManager struct {
 	Role Role
@@ -21,5 +24,15 @@ func NewElectionManager() *ElectionManager {
 var _ network.BaseManager = (*ElectionManager)(nil)
 
 func (em *ElectionManager) Receive(conn *network.Connection, message network.Message) {
-
+	messageType := message.Header.Type
+	switch messageType {
+	case network.RequestNewTerm:
+		fmt.Println("request new term")
+	case network.RequestVote:
+		fmt.Println("request vote")
+	case network.RequestVoteResponse:
+		fmt.Println("request vote response")
+	default:
+		break
+	}
 }

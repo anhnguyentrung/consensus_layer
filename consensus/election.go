@@ -13,6 +13,7 @@ type ElectionManager struct {
 	signer network.SignFunc
 	address string
 	producers []Producer
+	voteCounter map[network.MessageType]TermVote
 }
 
 func NewElectionManager(signer network.SignFunc, address string) *ElectionManager {
@@ -21,7 +22,9 @@ func NewElectionManager(signer network.SignFunc, address string) *ElectionManage
 		term: 0,
 		signer: signer,
 		address: address,
+		voteCounter: make(map[network.MessageType]TermVote, 0),
 	}
+	em.voteCounter[network.RequestNewTerm] = make(TermVote, 0)
 	return em
 }
 
@@ -33,6 +36,9 @@ func (em *ElectionManager) Receive(conn *network.Connection, message network.Mes
 	switch messageType {
 	case network.RequestNewTerm:
 		fmt.Println("receive new term request")
+		newTerm := RequestNewTerm{}
+		network.UnmarshalBinary(message.Payload, &newTerm)
+		em.receivedNewTerm(newTerm)
 	case network.RequestVote:
 		fmt.Println("receive vote request")
 	case network.RequestVoteResponse:
@@ -40,6 +46,24 @@ func (em *ElectionManager) Receive(conn *network.Connection, message network.Mes
 	default:
 		break
 	}
+}
+
+func (em *ElectionManager) receivedNewTerm(conn *network.Connection, newTerm RequestNewTerm) {
+	if em.role == Follower {
+		producerIndex := int(newTerm.Term) % len(em.producers)
+		if em.producers[producerIndex].Address == em.address {
+			em.voteCounter[network.RequestNewTerm][newTerm.Term] += 1
+		}
+		if em.voteCounter[network.RequestNewTerm][newTerm.Term] > uint32(len(em.producers)) * 2/3 {
+			em.becomeCandidate(newTerm.Term)
+			//em.sendVoteRequest(conn)
+		}
+	}
+}
+
+func (em *ElectionManager) becomeCandidate(term uint64) {
+	em.role = Candidate
+	em.term = term
 }
 
 func (em *ElectionManager) Send(conn *network.Connection, messageType network.MessageType) {

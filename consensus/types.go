@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"consensus_layer/crypto"
-	"consensus_layer/blockchain"
 )
 
 type Role uint8
@@ -21,7 +20,8 @@ type RequestNewTerm struct {
 
 type RequestVote struct {
 	Term uint64
-	CandidateId blockchain.SHA256Type
+	Candidate string // address
+	Signature crypto.Signature
 }
 
 type RequestVoteResponse struct {
@@ -34,3 +34,5 @@ type Producer struct {
 	Address string
 	PublicKey *crypto.PublicKey
 }
+
+type TermVote map[uint64]uint32 // [term]vote

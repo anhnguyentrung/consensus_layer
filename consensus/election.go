@@ -15,6 +15,7 @@ type ElectionManager struct {
 	producers []Producer
 	voteCounter map[network.MessageType]TermVote
 	newTerms []RequestNewTerm
+	grantVotes []GrantVote
 }
 
 func NewElectionManager(signer network.SignFunc, address string) *ElectionManager {
@@ -47,6 +48,9 @@ func (em *ElectionManager) Receive(conn *network.Connection, message network.Mes
 		em.receivedVoteRequest(conn, voteRequest)
 	case network.GrantVote:
 		fmt.Println("receive vote response")
+		grantVote := GrantVote{}
+		network.UnmarshalBinary(message.Payload, &grantVote)
+		em.receivedGrantVote(conn, grantVote)
 	default:
 		break
 	}
@@ -80,7 +84,24 @@ func (em *ElectionManager) receivedVoteRequest(conn *network.Connection, voteReq
 			return
 		}
 		em.role = Follower
-		em.sendGrantVote(conn)
+		em.sendGrantVote(conn, voteRequest.Term)
+	}
+}
+
+func (em *ElectionManager) receivedGrantVote(conn *network.Connection, grantVote GrantVote) {
+	if em.role == Candidate {
+		if grantVote.Term != em.term {
+			return
+		}
+		// signature is invalid
+		if !em.verifyGrantNode(grantVote) {
+			return
+		}
+		em.grantVotes = append(em.grantVotes, grantVote)
+		if len(em.grantVotes) > len(em.producers) * 2/3 {
+			// the candidate become leader
+			em.becomeLeader()
+		}
 	}
 }
 
@@ -141,9 +162,34 @@ func (em *ElectionManager) verifyNewTerm(newTerm RequestNewTerm) bool {
 	return newTerm.Signature.Verify(*senderPub, hash[:])
 }
 
+func (em *ElectionManager) verifyGrantNode(grandVote GrantVote) bool {
+	var senderPub *crypto.PublicKey = nil
+	for _, p := range em.producers {
+		if p.Address == grandVote.Sender {
+			senderPub = p.PublicKey
+			break
+		}
+	}
+	if senderPub == nil {
+		return false
+	}
+	grantVoteWithoutSignature := GrantVote{
+		grandVote.Term,
+		grandVote.Sender,
+		crypto.Signature{},
+	}
+	buf, _ := network.MarshalBinary(grantVoteWithoutSignature)
+	hash := sha256.Sum256(buf)
+	return grandVote.Signature.Verify(*senderPub, hash[:])
+}
+
 func (em *ElectionManager) becomeCandidate(term uint64) {
 	em.role = Candidate
 	em.term = term
+}
+
+func (em *ElectionManager) becomeLeader() {
+	em.role = Leader
 }
 
 func (em *ElectionManager) Send(conn *network.Connection, messageType network.MessageType) {
@@ -175,7 +221,7 @@ func (em *ElectionManager) sendNewTermRequest(conn *network.Connection) {
 func (em *ElectionManager) sendVoteRequest(conn *network.Connection) {
 	signedNewTerms := make([]RequestNewTerm, 0)
 	for _, newTerm := range em.newTerms {
-		if newTerm.Term == em.term {
+		if newTerm.Term == em.term { // term of candidate
 			signedNewTerms = append(signedNewTerms, newTerm)
 		}
 	}
@@ -192,9 +238,9 @@ func (em *ElectionManager) sendVoteRequest(conn *network.Connection) {
 	conn.Send(requestVote)
 }
 
-func (em *ElectionManager) sendGrantVote(conn *network.Connection) {
+func (em *ElectionManager) sendGrantVote(conn *network.Connection, term uint64) {
 	grantVote := GrantVote{
-		em.term,
+		term,
 		em.address,
 		crypto.Signature{},
 	}

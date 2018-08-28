@@ -21,6 +21,7 @@ type RequestNewTerm struct {
 type RequestVote struct {
 	Term uint64
 	Candidate string // address
+	SignedNewTerms []RequestNewTerm
 	Signature crypto.Signature
 }
 

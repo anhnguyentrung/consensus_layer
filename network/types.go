@@ -16,7 +16,7 @@ const (
 	Block
 	RequestNewTerm
 	RequestVote
-	RequestVoteResponse
+	GrantVote
 )
 
 type NetworkType byte

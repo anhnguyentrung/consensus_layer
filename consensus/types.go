@@ -25,10 +25,10 @@ type RequestVote struct {
 	Signature crypto.Signature
 }
 
-type RequestVoteResponse struct {
+type GrantVote struct {
 	Term uint64
 	Sender string
-	GrantVote bool
+	Signature crypto.Signature
 }
 
 type Producer struct {

@@ -139,7 +139,7 @@ func (node *Node) OnReceive(receiveMessage network.ReceiveMessage) {
 	case network.Notice:
 	case network.Request:
 	case network.Block:
-	case network.RequestNewTerm, network.RequestVote, network.RequestVoteResponse:
+	case network.RequestNewTerm, network.RequestVote, network.GrantVote:
 		node.managers[network.ElectionManager].Receive(c, receiveMessage.Message)
 	}
 }

@@ -45,7 +45,7 @@ func (em *ElectionManager) Receive(conn *network.Connection, message network.Mes
 		voteRequest := RequestVote{}
 		network.UnmarshalBinary(message.Payload, &voteRequest)
 		em.receivedVoteRequest(conn, voteRequest)
-	case network.RequestVoteResponse:
+	case network.GrantVote:
 		fmt.Println("receive vote response")
 	default:
 		break
@@ -80,7 +80,7 @@ func (em *ElectionManager) receivedVoteRequest(conn *network.Connection, voteReq
 			return
 		}
 		em.role = Follower
-		
+		em.sendGrantVote(conn)
 	}
 }
 
@@ -146,7 +146,32 @@ func (em *ElectionManager) becomeCandidate(term uint64) {
 	em.term = term
 }
 
-// send vote request
+func (em *ElectionManager) Send(conn *network.Connection, messageType network.MessageType) {
+	switch messageType {
+	case network.RequestNewTerm:
+		fmt.Println("request new term")
+	case network.RequestVote:
+		fmt.Println("request vote")
+	case network.GrantVote:
+		fmt.Println("request vote response")
+	default:
+		break
+	}
+}
+
+func (em *ElectionManager) sendNewTermRequest(conn *network.Connection) {
+	newTerm := RequestNewTerm{
+		em.term + 1,
+		em.address,
+		crypto.Signature{},
+	}
+	buf, _ := network.MarshalBinary(newTerm)
+	hash := sha256.Sum256(buf)
+	sig := em.signer(hash)
+	newTerm.Signature = sig
+	conn.Send(newTerm)
+}
+
 func (em *ElectionManager) sendVoteRequest(conn *network.Connection) {
 	signedNewTerms := make([]RequestNewTerm, 0)
 	for _, newTerm := range em.newTerms {
@@ -167,28 +192,15 @@ func (em *ElectionManager) sendVoteRequest(conn *network.Connection) {
 	conn.Send(requestVote)
 }
 
-func (em *ElectionManager) Send(conn *network.Connection, messageType network.MessageType) {
-	switch messageType {
-	case network.RequestNewTerm:
-		fmt.Println("request new term")
-	case network.RequestVote:
-		fmt.Println("request vote")
-	case network.RequestVoteResponse:
-		fmt.Println("request vote response")
-	default:
-		break
-	}
-}
-
-func (em *ElectionManager) sendNewTermRequest(conn *network.Connection) {
-	newTerm := RequestNewTerm{
-		em.term + 1,
+func (em *ElectionManager) sendGrantVote(conn *network.Connection) {
+	grantVote := GrantVote{
+		em.term,
 		em.address,
 		crypto.Signature{},
 	}
-	buf, _ := network.MarshalBinary(newTerm)
+	buf, _ := network.MarshalBinary(grantVote)
 	hash := sha256.Sum256(buf)
 	sig := em.signer(hash)
-	newTerm.Signature = sig
-	conn.Send(newTerm)
+	grantVote.Signature = sig
+	conn.Send(grantVote)
 }
